@@ -11,6 +11,10 @@ import os
 import pickle
 from time import sleep as wait
 from multiprocessing import Pool
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
 
 HCP_data = pd.read_csv('HCP_Online_Behavior.csv')
 
@@ -130,16 +134,249 @@ for url in urls[0:5]:
     output.append(url_dict)
 output_df = pd.DataFrame(output)
 output_df['url'] = urls[0:5]
+output_df.head()
 
-
-output_df['videos'][4]
+output_df['all_text'][2]
 print(output_df['iframes'][4])
-urls[4]
+urls[1]
+
+ptext_array = list(output_df['p_text'])
 
 
 ##################################
 # Pull keywords from Google API
 ##################################
+from google.cloud import language
+from google.cloud.language import enums
+from google.cloud.language import types
+
+# To help set up google cloud api
+# https://cloud.google.com/natural-language/docs/quickstart#quickstart-analyze-entities-cli
+
+import os
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="/Users/katiestuart/Keyword-Extraction-2804f152e6bc.json"
+
+def implicit():
+    from google.cloud import storage
+
+    # If you don't specify credentials when constructing the client, the
+    # client library will look for credentials in the environment.
+    storage_client = storage.Client()
+
+    # Make an authenticated API request
+    buckets = list(storage_client.list_buckets())
+    print(buckets)
+
+
+response
+def analyze_text_entities(text):
+    global response
+    client = language.LanguageServiceClient()
+
+    document = types.Document(
+        content=text,
+        type=enums.Document.Type.PLAIN_TEXT)
+
+    response = client.analyze_entities(document=document)
+
+    output = []
+    for entity in response.entities:
+        # print('=' * 79)
+        results = [
+            (entity.name),
+            (enums.Entity.Type(entity.type).name),
+            (entity.salience),
+            (entity.metadata.get('wikipedia_url', '-')),
+            # (entity.metadata.get('mid', '-')),
+        ]
+
+        output.append(results)
+        # for k, v in results:
+        #     print('{:15}: {}'.format(k, v))
+    keyword_DF = pd.DataFrame(output)
+    keyword_DF = keyword_DF.rename(columns = {0:"name", 1:"type", 2:"salience", 3:"wiki_url"})
+    keyword_DF = keyword_DF.drop_duplicates(subset="name", keep = "first")
+
+    return keyword_DF
+
+def analyze_text_list(docs):
+
+    full_keyword_DF = pd.DataFrame()
+
+    counter = 0
+    for i in range(len(docs)):
+        try:
+            keyword_DF = analyze_text_entities(output_df[i:i+1]["p_text"].values[0])
+        except:
+            keyword_DF = analyze_text_entities(output_df[i:i+1]["all_text"].values[0])
+
+        keyword_DF["doc_index"] = counter
+        full_keyword_DF = full_keyword_DF.append(keyword_DF)
+        counter += 1
+
+    return full_keyword_DF
+
+
+keyword_results = analyze_text_list(output_df)
+keyword_results = test.rename(columns = {"name": "phrase"})
+
+keyword_results.to_csv("api_output.csv")
+
+# for i in range(0, len(output_df["p_text"])):
+#     print(i)
+#     print(output_df[i]["url"])
+#
+# output_ptext = list(output_df["p_text"])
+# output_urls = list(output_df["urls"])
+
+output_df[0:1]["url"]
+output_df['p_text'][1]
+text = output_df['p_text'][1]
+keyword_results = analyze_text_entities(text)
+
+keyword_results[keyword_results.doc_index.values == 1]
+
+
+
+## Run through a countvectoriser to pull top entities
+#
+# vectorizer = CountVectorizer(lowercase=True, stop_words=None, ngram_range=(1, 3), min_df=0.25)
+# vectorizer.fit(ptext_array[1:5])
+#
+# vector = vectorizer.transform(ptext_array[1:5])
+# vectorizer.vocabulary_
+#
+# dfvec = pd.DataFrame({'doc_index':vector.nonzero()[0],
+#                    'doc_matrix_indices':vector.nonzero()[1], # index of word
+#                    'count':vector.data})
+# dfvec['phrase']=[vocab[x] for x in dfvec.doc_matrix_indices]
+#
+# vocab = vectorizer.get_feature_names()
+#
+# vector[0].toarray()[0]
+
+
+
+
+
+def Vec(data, vectorizer = "cv", min_df = 5, max_df = 0.95, max_features = 8000, stop_words = 'english', ngram_range = (1,3), norm = None):
+
+    ## Run CountVectorizer
+    if vectorizer == "cv":
+        vec = CountVectorizer(
+                                min_df = min_df, # min document frequency: number of times word has to be in all documents to be included
+                                max_df = max_df, # max document frequency: to remove words like a, the, and - that appear all the time
+                                # max_features = max_features, # max number of words to include in vectorizer
+                                stop_words = stop_words, #take out stop words
+                                ngram_range= ngram_range, # (1,1) unigrams only, (1,2) both uni and bi-grams, (2,2) bigrams only
+                                lowercase = False
+                                )
+
+    ## Run TFIDF
+    if vectorizer == "tfidf":
+        vec = TfidfVectorizer(
+                                min_df = min_df, # min document frequency: number of times word has to be in all documents to be included
+                                max_df = max_df, # max document frequency: to remove words like a, the, and - that appear all the time
+                                max_features = max_features, # max number of words to include in vectorizer
+                                stop_words = stop_words, #take out stop words
+                                ngram_range= ngram_range, # (1,1) unigrams only, (1,2) both uni and bi-grams, (2,2) bigrams only
+                                norm = norm,
+                                lowercase = False
+                                )
+
+    vec.fit(data)
+    # returns sparse matrix: doc index x word index
+    doc_vectors = vec.transform(data)
+    # Get the vocab, words in the doc vectors
+    vocab = vec.get_feature_names()
+
+    # Create a dataframe of all docs, their words and TFIDF scores
+    df = pd.DataFrame({'doc_index':doc_vectors.nonzero()[0],
+                       'doc_matrix_indices':doc_vectors.nonzero()[1], # index of word
+                       'count':doc_vectors.data})
+
+    # Add the actual word from the vocab
+    df['phrase']=[vocab[x] for x in df.doc_matrix_indices]
+
+    # Add rank based on tfidf for each document
+    df = df.sort_values(['doc_index','count'],ascending=[1,0])
+    # df['rank'] = df.groupby('doc_index')['count'].rank(ascending=False)
+
+    return df, vocab, doc_vectors
+
+# run countvec
+df, vocab, doc_vectors = Vec(ptext_array, "cv", min_df = 0, max_df = 0.95, stop_words = 'english', ngram_range = (1,3))
+# run tfidf
+df_t, vocab_t, doc_vectors_t = Vec(ptext_array, "tfidf", min_df = 0, max_df = 0.95, stop_words = 'english', ngram_range = (1,3), norm = 'l2')
+df_t = df_t.drop(['phrase'], axis=1)
+df_t = df_t.rename(columns = {"count": "tfidf"})
+
+vec_results = pd.merge(df, df_t, how= "left", on=['doc_index', 'doc_matrix_indices'])
+
+vec_results.head()
+
+# Add on count countvectoriser
+
+keyword_results_n = pd.merge(keyword_results, vec_results, how= "left", on=['doc_index', 'phrase'])
+# Change count to proportion
+
+# sum counts by doc index
+doc_counts = pd.DataFrame(keyword_results_n["count"].groupby(keyword_results_n.doc_index).sum()).reset_index()
+keyword_results_n = pd.merge(keyword_results_n, doc_counts, how= "left", on=['doc_index'])
+keyword_results_n["count_prop"] = keyword_results_n.count_x/keyword_results_n.count_y
+keyword_results_n = keyword_results_n.drop(['count_y'], axis=1)
+
+keyword_results_n = keyword_results_n.fillna(0)
+tfidf = np.array(keyword_results_n["tfidf"])
+tfidf = tfidf.reshape(-1,1)
+tfidf.shape
+
+
+scaler = MinMaxScaler()
+tfidf = scaler.fit_transform(tfidf)
+keyword_results_n["scaled_tfidf"] = tfidf
+
+pd.set_option('display.max_rows', 500)
+keyword_results_n[keyword_results_n.count_prop>0].sort_values('count_prop', ascending=True)
+keyword_results_n[keyword_results_n.doc_index.values == 3]
+keyword_results_n = keyword_results_n.drop(['wiki_url'], axis=1)
+
+# Select final keywords based on criteria
+
+keyword_results_final = keyword_results_n[(keyword_results_n.scaled_tfidf > 0.05) & (keyword_results_n.count_prop > 0.005)]
+
+keyword_results_final[keyword_results_final.doc_index.values == 3].sort_values("scaled_tfidf", ascending = False).reset_index()
+
+keyword_results_n.scaled_tfidf.groupby(keyword_results_n.doc_index).max()
+
+keyword_results_n["count_prop"].groupby(keyword_results_n.doc_index).max()
+
+
+#### Create cluster based on words and assign cluster to articles
+
+
+###########################################################################################
+# Google Classification
+###########################################################################################
+def classify_text(text):
+    client = language.LanguageServiceClient()
+    document = types.Document(
+        content=text,
+        type=enums.Document.Type.PLAIN_TEXT)
+
+    response = client.classify_text(document=document)
+
+    # for category in response.categories:
+    #     print('=' * 79)
+    #     print('category  : {}'.format(category.name))
+    #     print('confidence: {:.0%}'.format(category.confidence))
+
+    return response
+
+categories = classify_text(text)
+
+classify_text(output_df['p_text'][3])
+
 
 
 #############################################################################################################################################################################################################
