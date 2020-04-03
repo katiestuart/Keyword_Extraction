@@ -10,6 +10,11 @@ import numpy as np
 
 def Vec(data, vectorizer = "cv", min_df = 5, max_df = 0.95, max_features = 8000, stop_words = 'english', ngram_range = (1,3), norm = None):
 
+    """
+        Takes in text array and produces a DF containing Counts & TFIDF scores
+        by Doc_index & individual word index
+    """
+
     ## Run CountVectorizer
     if vectorizer == "cv":
         vec = CountVectorizer(

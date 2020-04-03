@@ -43,6 +43,11 @@ def implicit():
 
 
 def analyze_text_entities(text):
+
+    """
+        Takes in string & output key entities from Google API
+    """
+
     global response
     client = language.LanguageServiceClient()
 
@@ -73,6 +78,10 @@ def analyze_text_entities(text):
     return keyword_DF
 
 def analyze_text_list(docs):
+
+    """
+        Loops around text using text column from DF and pulls back entities iteratively
+    """
 
     full_keyword_DF = pd.DataFrame()
 

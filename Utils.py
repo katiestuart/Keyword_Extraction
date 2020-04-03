@@ -5,6 +5,10 @@ import numpy as np
 
 def Count_prop(data):
 
+    """
+        Works out proportion word appears based on total # of words in document
+    """
+
     # sum counts by doc index
     doc_counts = pd.DataFrame(data["count"].groupby(data.doc_index).sum()).reset_index()
     data = pd.merge(data, doc_counts, how= "left", on=['doc_index'])
@@ -14,6 +18,10 @@ def Count_prop(data):
     return data
 
 def MinMax(data):
+
+    """
+        Scales TFIDF so Criteria can be applied to select final keywords
+    """
 
     # Remove nulls & Shape Data
     data = data.fillna(0)

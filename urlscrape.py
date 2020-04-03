@@ -56,9 +56,11 @@ def extract_meta_tags(soup):
 
 
 def url_scrape(url):
+
     """
         Input a URL and output a dictionary containing all common HTML features
     """
+
     global url_dict
     # import urllib.request
     ## Remove unnecessary characters -- whitespace character
