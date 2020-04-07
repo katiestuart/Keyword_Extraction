@@ -84,16 +84,23 @@ def analyze_text_list(docs):
     """
 
     full_keyword_DF = pd.DataFrame()
+    failed = []
 
     counter = 0
     for i in range(len(docs)):
         try:
-            keyword_DF = analyze_text_entities(docs[i:i+1]["p_text"].values[0])
-        except:
-            keyword_DF = analyze_text_entities(docs[i:i+1]["all_text"].values[0])
+            try:
+                keyword_DF = analyze_text_entities(docs[i:i+1]["p_text"].values[0])
+            except:
+                keyword_DF = analyze_text_entities(docs[i:i+1]["all_text"].values[0])
 
-        keyword_DF["doc_index"] = counter
-        full_keyword_DF = full_keyword_DF.append(keyword_DF)
-        counter += 1
+            keyword_DF["doc_index"] = counter
+            keyword_DF["url"] = docs[i:i+1]["url"].values[0]
+            full_keyword_DF = full_keyword_DF.append(keyword_DF)
+            counter += 1
+        # pass if Google API cannot use lanuage of article
+        except:
+            print("Doc",i,"Failed")
+            failed.append(docs[i:i+1]["url"])
 
     return full_keyword_DF

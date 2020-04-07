@@ -19,7 +19,7 @@ def Vec(data, vectorizer = "cv", min_df = 5, max_df = 0.95, max_features = 8000,
     if vectorizer == "cv":
         vec = CountVectorizer(
                                 min_df = min_df, # min document frequency: number of times word has to be in all documents to be included
-                                max_df = max_df, # max document frequency: to remove words like a, the, and - that appear all the time
+                                # max_df = max_df, # max document frequency: to remove words like a, the, and - that appear all the time
                                 # max_features = max_features, # max number of words to include in vectorizer
                                 stop_words = stop_words, #take out stop words
                                 ngram_range= ngram_range, # (1,1) unigrams only, (1,2) both uni and bi-grams, (2,2) bigrams only
@@ -30,8 +30,8 @@ def Vec(data, vectorizer = "cv", min_df = 5, max_df = 0.95, max_features = 8000,
     if vectorizer == "tfidf":
         vec = TfidfVectorizer(
                                 min_df = min_df, # min document frequency: number of times word has to be in all documents to be included
-                                max_df = max_df, # max document frequency: to remove words like a, the, and - that appear all the time
-                                max_features = max_features, # max number of words to include in vectorizer
+                                # max_df = max_df, # max document frequency: to remove words like a, the, and - that appear all the time
+                                # max_features = max_features, # max number of words to include in vectorizer
                                 stop_words = stop_words, #take out stop words
                                 ngram_range= ngram_range, # (1,1) unigrams only, (1,2) both uni and bi-grams, (2,2) bigrams only
                                 norm = norm,

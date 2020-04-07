@@ -68,24 +68,42 @@ def url_scrape(url):
     ## Create empty dictionary with url as key
     url_dict = {}
     ## bs4
-    headers = {
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36'}
-    r = requests.get(url, headers=headers, timeout=10)
+    # headers = {
+    #     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36'}
+
+    r = requests.get(url, headers=headers, timeout=20)
     html = None
     links = None
     # if it's loaded the page properly
+
     if r.status_code == 200:
         html = r.text
         soup = BeautifulSoup(html, 'lxml')
         for script in soup(["script", "style"]):
             script.extract()
+    else:
+        print(r.status_code)
+
 
     ## Extract all features
-    url_dict['p_text'] = "".join([element.text for element in soup.findAll('p')])
-    url_dict['h1_text'] = "".join([element.text for element in soup.findAll('h1')])
+    try:
+        url_dict['p_text'] = "".join([element.text for element in soup.findAll('p')])
+    except:
+        url_dict['p_text'] = ''
+    try:
+        url_dict['h1_text'] = "".join([element.text for element in soup.findAll('h1')])
+    except:
+        url_dict['h1_text'] = ''
     url_dict['hrefs'] = [link.get('href') for link in soup.findAll('a')]
-    url_dict['img_links'] = [image['src'] for image in soup.findAll('img')]
-    url_dict['iframes']= soup.find_all('iframe')
+    try:
+        url_dict['img_links'] = [image['src'] for image in soup.findAll('img')]
+    except:
+        url_dict['img_links'] = ''
+    try:
+        url_dict['iframes'] = soup.find_all('iframe')
+    except:
+        url_dict['iframes'] = ''
 
     try:
         url_dict['videos']= re.search("(?P<url>https?://[^\s]+)", str(url_dict['iframes'])).group("url").replace('"',"")
@@ -116,4 +134,4 @@ def url_scrape(url):
     text = org_text.replace("\n"," ")
     text = ' '.join(text.split())
     url_dict['all_text'] = text
-    return url_dict
+    return url_dict, r.status_code
