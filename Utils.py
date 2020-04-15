@@ -38,18 +38,27 @@ def MinMax(data):
     return data
 
 
-def cluster(n_clusters, sentence_embeddings, key_phrase = None, create_plot = 'Y'):
+def cluster(cluster_type, n_clusters, sentence_embeddings, key_phrase = None, create_plot = 'Y'):
 
     if key_phrase == None:
         key_phrase = list(range(0,len(sentence_embeddings),1))
-    # CREATE CLUSTERS
-    kmeans = KMeans(n_clusters= n_clusters)
-    # fit kmeans object to data
-    kmeans.fit(sentence_embeddings)
-    # print location of clusters learned by kmeans object
-#     print(kmeans.cluster_centers_)
-    # save new clusters for chart
-    y_km = kmeans.fit_predict(sentence_embeddings)
+
+    # Run KMeans
+    if cluster_type == 0:
+        # CREATE CLUSTERS
+        kmeans = KMeans(n_clusters= n_clusters)
+        # fit kmeans object to data
+        kmeans.fit(sentence_embeddings)
+        # print location of clusters learned by kmeans object
+    #     print(kmeans.cluster_centers_)
+        # save new clusters for chart
+        y_km = kmeans.fit_predict(sentence_embeddings)
+
+    # Run Hierarchical Clustering
+    if cluster_type == 1:
+        from sklearn.cluster import AgglomerativeClustering
+        cluster = AgglomerativeClustering(n_clusters=n_clusters, affinity='euclidean', linkage='ward')
+        y_km = cluster.fit_predict(sentence_embeddings)
 
     se_array = np.array(sentence_embeddings)
 

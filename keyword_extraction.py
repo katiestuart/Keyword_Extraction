@@ -27,7 +27,7 @@ im.reload(urlscrape)
 im.reload(EntityExtract)
 im.reload(Vectoriser)
 im.reload(Utils)
-pd.set_option('display.max_rows', 500)
+apd.set_option('display.max_rows', 500)
 
 # current working directory
 os.getcwd()
@@ -69,8 +69,10 @@ output_df['url'] = urls
 output_df = output_df[~output_df.url.isin(failed)].reset_index(drop=True)
 output_df.to_csv("BS_output.csv")
 
+output_df = pd.read_csv("BS_output.csv")
 output_df['p_text'][18]
 urls[17]
+
 
 ##################################
 # Pull keywords from Google API
@@ -99,6 +101,7 @@ keyword_results = keyword_results[keyword_results.type.values != "NUMBER"]
 ####################################################
 
 # replace missing text with another col
+output_df = output_df.fillna("")
 output_df['p_text'] = np.where(output_df['p_text'] == '', output_df['all_text'], output_df['p_text'])
 
 # create list of failed urls
@@ -197,8 +200,6 @@ len(embeddings)
 len(key_phrase_n)
 len(key_phrase_y)
 
-in_vocab
-not_in_vocab
 
 model.similarity('obstetrics', 'gynecology')
 model.similarity('country', 'communities')
@@ -218,8 +219,10 @@ cosine_similarity([sentence_embeddings[65]], [sentence_embeddings[66]])
 
 cosine_similarity([sentence_embeddings[45]], [sentence_embeddings[46]])
 
+#######################################################################
+# Create cluster based on words and assign cluster to articles
+#######################################################################
 
-#### Create cluster based on words and assign cluster to articles
 
 clusters = Utils.cluster(25, embeddings, key_phrase_y)
 
@@ -228,6 +231,7 @@ for x in clusters.cluster_name.unique():
     #print('\ncluster:',x,'words:',len(clusters[clusters.cluster_name == x]),', '.join(clusters[clusters.cluster_name == x].phrase.values))
     cluster_names.append([x,len(clusters[clusters.cluster_name == x]),', '.join(clusters[clusters.cluster_name == x].phrase.values)])
 
+clusters
 # cluster_names_bert = pd.DataFrame(cluster_names, columns = ['cluster','num_words','cluster_words'])
 # cluster_names_bert
 
@@ -274,6 +278,44 @@ clusters = Utils.cluster(10, sentence_embeddings)
 
 urls[23]
 clusters
+
+#######################################################################
+# Test Hierarchical Clustering to build Taxonomy
+#######################################################################
+import matplotlib.pyplot as plt
+import scipy.cluster.hierarchy as shc
+plt.figure(figsize=(10, 7))
+plt.title("Dendrograms")
+dend = shc.dendrogram(shc.linkage(embeddings, method='ward'), truncate_mode = 'lastp', get_leaves=True)
+
+
+dend['dcoord']
+
+from sklearn.cluster import AgglomerativeClustering
+cluster = AgglomerativeClustering(n_clusters=2, affinity='euclidean', linkage='ward')
+cluster.fit_predict(embeddings)
+
+# Medical Vs. Non-medicalxs
+clusters = Utils.cluster(1, 2, embeddings, key_phrase_y)
+# Medical Vs. Virus Vs. Everything else
+clusters = Utils.cluster(1, 3, embeddings, key_phrase_y)
+# Everything vs. Body vs. Virus vs. Medical
+clusters = Utils.cluster(1, 4, embeddings, key_phrase_y)
+# Everything vs. Body vs. Virus vs. Medical
+clusters = Utils.cluster(1, 5, embeddings, key_phrase_y)
+
+cluster_names = []
+for x in clusters.cluster_name.unique():
+    #print('\ncluster:',x,'words:',len(clusters[clusters.cluster_name == x]),', '.join(clusters[clusters.cluster_name == x].phrase.values))
+    cluster_names.append([x,len(clusters[clusters.cluster_name == x]),', '.join(clusters[clusters.cluster_name == x].phrase.values)])
+
+cluster_names
+
+
+
+
+
+
 
 #############################################################################################################################################################################################################
 # links=[]
